@@ -10,6 +10,7 @@ using System.Threading.Tasks;
 using XboxCsMgr.Helpers.Http;
 using XboxCsMgr.Helpers.Serialization;
 using XboxCsMgr.XboxLive.Exceptions;
+using XboxCsMgr.XboxLive.Model.TitleStorage;
 
 namespace XboxCsMgr.XboxLive
 {
@@ -81,7 +82,7 @@ namespace XboxCsMgr.XboxLive
             return await HandleResponse<T>(res);
         }
 
-        public async Task<T> SignAndRequest<T>(string uri, string token, string method = "GET")
+        public async Task<T> SignAndRequest<T>(string uri, string token, string method = "GET", Dictionary<string, string> Headers = null, Dictionary<string, string> queryParameters = null)
         {
             var reqMessage = new HttpRequestMessage
             {
@@ -93,7 +94,20 @@ namespace XboxCsMgr.XboxLive
                 token = "";
             reqMessage.Headers.Add("Accept-Language", System.Globalization.CultureInfo.CurrentCulture.ToString());
             reqMessage.Headers.Add(HttpHeaders);
-
+            if (Headers != null)
+            {
+                foreach (KeyValuePair<string, string> header in Headers)
+                {
+                    reqMessage.Headers.Add(header.Key, header.Value);
+                }
+            }
+            if (queryParameters != null)
+            {
+                foreach (KeyValuePair<string, string> parameter in queryParameters)
+                {
+                    reqMessage.AddQueryParameter(parameter.Key, parameter.Value);
+                }
+            }
             var res = await HttpClient.SendAsync(reqMessage);
             return await HandleResponse<T>(res);
         }

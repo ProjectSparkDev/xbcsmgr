@@ -79,10 +79,33 @@ namespace XboxCsMgr.XboxLive.Services
         /// <param name="serviceConfigId"></param>
         /// <param name="pfn"></param>
         /// <returns></returns>
-        public Task<TitleStorageBlobMetadataResult> GetBlobMetadata()
+        public async Task<TitleStorageBlobMetadataResult> GetBlobMetadata()
         {
-            return SignAndRequest<TitleStorageBlobMetadataResult>(
-                $"connectedstorage/users/xuid({Config.UserOptions.XboxUserId})/scids/{ServiceConfigurationId}", "");
+            TitleStorageBlobMetadataResult tmp = await SignAndRequest<TitleStorageBlobMetadataResult>(
+                $"connectedstorage/users/xuid({Config.UserOptions.XboxUserId})/scids/{ServiceConfigurationId}", "", "GET", null, null);
+            while(tmp.pagingInfo.continuationToken != null)
+            {
+                tmp = await GetBlobMetadataPartial(tmp);
+            }
+            return tmp;
+        }
+        private async Task<TitleStorageBlobMetadataResult> GetBlobMetadataPartial(TitleStorageBlobMetadataResult partial)
+        {
+            TitleStorageBlobMetadataResult tmp = await GetBlobMetadataPartial(partial.Blobs.Count,partial.pagingInfo.continuationToken);
+            foreach (TitleStorageBlobMetadata blob in tmp.Blobs)
+            {
+                partial.Blobs.Add(blob);
+            }
+            partial.pagingInfo.continuationToken = tmp.pagingInfo.continuationToken;
+            return partial;
+        }
+        private async Task<TitleStorageBlobMetadataResult> GetBlobMetadataPartial(int skip, string continueationToken)
+        {
+            Dictionary<string, string> parameters = new Dictionary<string, string>();
+            parameters.Add("skipItems", skip.ToString());
+            parameters.Add("continuationToken", continueationToken);
+            return await SignAndRequest<TitleStorageBlobMetadataResult>(
+                $"connectedstorage/users/xuid({Config.UserOptions.XboxUserId})/scids/{ServiceConfigurationId}", "", "GET", null, parameters);
         }
 
         /// <summary>
